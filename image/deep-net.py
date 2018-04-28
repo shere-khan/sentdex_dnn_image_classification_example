@@ -72,22 +72,22 @@ def train_nn(x):
         counter = 0
         for epoch in range(hm_epochs):
             epoch_loss = 0
-            for i in range(int(mnist.train.num_examples / batch_size)):
+            for _ in range(int(mnist.train.num_examples / batch_size)):
                 counter += 1
                 merge = tf.summary.merge_all()
-                if i % 10 == 0:
+                if _ % 10 == 0:
                     summary, acc = sess.run([merge, test_accuracy],
                                             feed_dict={x: mnist.test.images,
                                                        y: mnist.test.labels})
                     train_writer.add_summary(summary, counter)
                 else:
                     batch_xs, batch_ys = mnist.train.next_batch(batch_size)
-                    _, c = sess.run([optimizer, cost],
-                                    feed_dict={x: batch_xs, y: batch_ys})
+                    _, c = sess.run([optimizer, cost], feed_dict={x: batch_xs, y: batch_ys})
                     summary = sess.run(merge, feed_dict={x: batch_xs.images,
-                                                         y: batch_ys})
-                    train_writer.add_summary(summary, i)
-                    epoch_loss += c
+                                                         y_: batch_ys})
+                    train_writer.add_summary(summary, _)
+
+                epoch_loss += c
 
             # Training accuracy
             # correct = tf.equal(tf.argmax(model, 1), tf.argmax(y, 1))
