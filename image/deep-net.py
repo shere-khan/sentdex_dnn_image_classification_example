@@ -46,9 +46,10 @@ def neural_network_model(data):
 
 
 def train_nn(x):
-    prediction = neural_network_model(x)
-    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction,
-                                                                  labels=y))
+    model = neural_network_model(x)
+    cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=model, labels=y))
+    # tf.summary.histogram("cross entropy hist", cost)
+    tf.summary.scalar("cross entropy scal", cost)
 
     # learning_rate = (default) 0.001
     optimizer = tf.train.AdamOptimizer().minimize(cost)
@@ -57,24 +58,36 @@ def train_nn(x):
     hm_epochs = 10
 
     with tf.Session() as sess:
+        train_writer = tf.summary.FileWriter('logs/sess.graph')
         sess.run(tf.initialize_all_variables())
 
+        counter = 0
         for epoch in range(hm_epochs):
             epoch_loss = 0
             for _ in range(int(mnist.train.num_examples / batch_size)):
-                # in reality we have to write a function that would do this for uss, but
-                # tensorflow does this for us
+                counter += 1
+                merge = tf.summary.merge_all()
                 epoch_x, epoch_y = mnist.train.next_batch(batch_size)
-                _, c = sess.run([optimizer, cost],
-                                feed_dict={x: epoch_x, y: epoch_y})
+                summary, _, c = sess.run([merge, optimizer, cost],
+                                         feed_dict={x: epoch_x, y: epoch_y})
+
+                train_writer.add_summary(summary, counter)
                 epoch_loss += c
+
+            # Training accuracy
+            correct = tf.equal(tf.argmax(model, 1), tf.argmax(y, 1))
+            training_accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
+            print('Accuracy: {0}'.format(
+                training_accuracy.eval({x: mnist.train.images, y: mnist.train.labels})))
+
+            # Test accuracy
+            correct = tf.equal(tf.argmax(model, 1), tf.argmax(y, 1))
+            test_accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
+            print('Accuracy: {0}'.format(
+                test_accuracy.eval({x: mnist.test.images, y: mnist.test.labels})))
+
             print('Epoch', epoch, 'completed out of', hm_epochs, 'loss: ', epoch_loss)
-
-        correct = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
-
-        accuracy = tf.reduce_mean(tf.cast(correct, 'float'))
-        print('Accuracy: {0}'.format(
-            accuracy.eval({x: mnist.test.images, y: mnist.test.labels})))
+        train_writer.close()
 
 
 train_nn(x)
